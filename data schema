@@ -1,0 +1,26 @@
+ID - int
+pda - string
+rcn - string
+status - string
+comments - string
+startLocation - string 
+endLocation -string
+edd - timestamp / estimaed dep date 
+rdd - timestamp / required del date
+eda - timestamp / estimaed del date
+SAMM Details - SAAM:1234G MissionID: Callsign:
+TCN - 17char
+NSN - 13 char
+nomenclature - string
+QTY - int
+DODIC - A525
+ST - Float
+Depot - string
+APOE - string
+Bol - 13 char string
+SDT Cost - Double
+Carrier - string
+ETA to APOE - timestamp
+Delivery Window - timestamp
+Truck status - Delivery to X base at XX (date)
+SAAM Status - delivered XX (date) 
