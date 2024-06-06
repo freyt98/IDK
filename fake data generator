@@ -3,17 +3,14 @@ from faker import Faker
 import random
 from datetime import datetime, timedelta
 
-# Database connection configuration
+# Configuration
 database_config = {
-    'dbname': 'your_dbname',
-    'user': 'your_username',
-    'password': 'your_password',
-    'host': 'your_host',
-    'port': 'your_port'
+    'dbname': 'your_dbname',  # Replace with your database name
+    'user': 'your_username',  # Replace with your database username
+    'password': 'your_password',  # Replace with your database password
+    'host': 'your_host',  # Replace with your database host
+    'port': 'your_port'  # Replace with your database port
 }
-
-# Number of rows of junk data to insert
-num_rows = 100
 
 # Establish a database connection
 conn = psycopg2.connect(
@@ -25,46 +22,69 @@ conn = psycopg2.connect(
 )
 cursor = conn.cursor()
 
-# Create an instance of Faker
+# Initialize Faker
 fake = Faker()
 
-# Function to generate a random float value
-def random_float():
-    return round(random.uniform(1.0, 100.0), 2)
-
-# Insert junk data into the table
-for _ in range(num_rows):
-    # Generate random timestamps with the required conditions
+# Function to generate random data with constraints
+def generate_random_data():
     edd = fake.date_time_this_year()
-    eda = edd + timedelta(days=random.randint(1, 10))
     rdd = edd + timedelta(days=random.randint(1, 10))
+    eda = rdd + timedelta(days=random.randint(1, 10))
     ETA_to_APOE = fake.date_time_this_year()
-    Delivery_Window = ETA_to_APOE + timedelta(hours=random.randint(1, 48))
-    
-    query = """
-    INSERT INTO YourTableName (
-        pda, rcn, status, comments, startLocation, endLocation,
-        edd, rdd, eda, SAMM_Details, TCN, NSN, nomenclature,
-        QTY, DODIC, ST, Depot, APOE, Bol, SDT_Cost, Carrier,
-        ETA_to_APOE, Delivery_Window, Truck_status, SAAM_Status
-    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """
-    values = (
-        fake.word(), fake.word(), fake.word(), fake.sentence(),
-        fake.city(), fake.city(), edd, rdd, eda, fake.sentence(),
-        fake.bothify(text='??####???????????'), fake.bothify(text='########?????'),
-        fake.word(), random.randint(1, 100), fake.word(), random_float(),
-        fake.word(), fake.word(), fake.bothify(text='########?????'),
-        random.uniform(10.0, 500.0), fake.company(), ETA_to_APOE,
-        Delivery_Window, fake.word(), fake.word()
+    Delivery_Window = ETA_to_APOE + timedelta(days=random.randint(1, 10))
+
+    return {
+        'pda': fake.word(),
+        'rcn': fake.word(),
+        'status': fake.random_element(elements=('Pending', 'In Transit', 'Delivered')),
+        'comments': fake.sentence(),
+        'startLocation': fake.city(),
+        'endLocation': fake.city(),
+        'edd': edd,
+        'rdd': rdd,
+        'eda': eda,
+        'SAMM_Details': fake.sentence(),
+        'TCN': fake.lexify(text='?' * 17),
+        'NSN': fake.lexify(text='?' * 13),
+        'nomenclature': fake.word(),
+        'QTY': fake.random_int(min=1, max=100),
+        'DODIC': fake.word(),
+        'ST': fake.random_number(digits=2, fix_len=True) + random.random(),
+        'Depot': fake.word(),
+        'APOE': fake.word(),
+        'Bol': fake.lexify(text='?' * 13),
+        'SDT_Cost': fake.random_number(digits=5) + random.random(),
+        'Carrier': fake.company(),
+        'ETA_to_APOE': ETA_to_APOE,
+        'Delivery_Window': Delivery_Window,
+        'Truck_status': fake.random_element(elements=('On Schedule', 'Delayed', 'Completed')),
+        'SAAM_Status': fake.random_element(elements=('Active', 'Inactive')),
+        'Mode': fake.random_element(elements=('air', 'ground', 'sea'))
+    }
+
+# Insert data into the table
+def insert_data(cursor, data):
+    insert_query = """
+    INSERT INTO DeliveryTable (
+        pda, rcn, status, comments, startLocation, endLocation, edd, rdd, eda, SAMM_Details, 
+        TCN, NSN, nomenclature, QTY, DODIC, ST, Depot, APOE, Bol, SDT_Cost, Carrier, 
+        ETA_to_APOE, Delivery_Window, Truck_status, SAAM_Status, Mode
+    ) VALUES (
+        %(pda)s, %(rcn)s, %(status)s, %(comments)s, %(startLocation)s, %(endLocation)s, %(edd)s, %(rdd)s, %(eda)s, %(SAMM_Details)s, 
+        %(TCN)s, %(NSN)s, %(nomenclature)s, %(QTY)s, %(DODIC)s, %(ST)s, %(Depot)s, %(APOE)s, %(Bol)s, %(SDT_Cost)s, %(Carrier)s, 
+        %(ETA_to_APOE)s, %(Delivery_Window)s, %(Truck_status)s, %(SAAM_Status)s, %(Mode)s
     )
-    cursor.execute(query, values)
+    """
+    cursor.execute(insert_query, data)
 
-# Commit the transaction
+# Generate and insert multiple rows of data
+for _ in range(100):  # Adjust the number to insert more or fewer rows
+    data = generate_random_data()
+    insert_data(cursor, data)
+
+# Commit the transaction and close the connection
 conn.commit()
-
-# Close the cursor and connection
 cursor.close()
 conn.close()
 
-print("Junk data inserted successfully")
+print("Data inserted successfully")
