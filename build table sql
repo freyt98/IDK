@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS DeliveryTable (
+CREATE TABLE IF NOT EXISTS YourTableName (
     ID SERIAL PRIMARY KEY,
     pda VARCHAR(255),
     rcn VARCHAR(255),
@@ -25,6 +25,6 @@ CREATE TABLE IF NOT EXISTS DeliveryTable (
     Delivery_Window TIMESTAMP,
     Truck_status VARCHAR(255),
     SAAM_Status VARCHAR(255),
-    Mode VARCHAR(255) CHECK (Mode IN ('air', 'ground', 'sea'))
+    Mode VARCHAR(255) CHECK (Mode IN ('air', 'ground', 'sea')),
+    high_priority BOOLEAN
 );
-
