@@ -1,156 +1,99 @@
+import psycopg2
+from faker import Faker
 import random
 from datetime import datetime, timedelta
-import json
 
-SERVICES = ['USAF','USN','USMC','USA']
-TRANSPORT_MODES = ['Air','Sea','Land','TBD']
-TYPE_AMMO = ['AIM120','AIM9','MK82','MK84','M61','M134','M240','M249','M2','M203','155mm']
-DOMESTIC_PLACES = ['MIA','JAX','ATL','DFW','LAX','SFO','SEA','ORD','JFK','BOS','PHL']
-FOREIGN_PLACES = ['LHR','CDG','FRA','MAD','FCO','IST','DXB','HKG','NRT','SYD','SIN']
-HEADERS = ['ID', 'pda', 'rcn', 'status', 'comments', 'startLocation', 'endLocation', 
-           'edd', 'rdd', 'eda', 'SAMM Details', 'TCN', 'NSN', 'nomenclature', 'QTY', 
-           'DODIC', 'ST', 'Depot', 'APOE', 'Bol', 'SDT Cost', 'Carrier', 'ETA to APOE', 
-           'Delivery Window', 'Truck status', 'SAAM Status']
+# Configuration
+database_config = {
+    'dbname': 'your_dbname',  # Replace with your database name
+    'user': 'your_username',  # Replace with your database username
+    'password': 'your_password',  # Replace with your database password
+    'host': 'your_host',  # Replace with your database host
+    'port': 'your_port'  # Replace with your database port
+}
 
-def generate_random_date(start_date, end_date):
-    return start_date + timedelta(
-        seconds=random.randint(0, int((end_date - start_date).total_seconds())),
+# Establish a database connection
+conn = psycopg2.connect(
+    dbname=database_config['dbname'],
+    user=database_config['user'],
+    password=database_config['password'],
+    host=database_config['host'],
+    port=database_config['port']
+)
+cursor = conn.cursor()
+
+# Initialize Faker
+fake = Faker()
+
+# Predefined list of military equipment or gear
+military_equipment = [
+    'Rifle', 'Helmet', 'Body Armor', 'Night Vision Goggles', 'Combat Boots',
+    'Tactical Vest', 'Handgun', 'Grenade', 'Radio', 'First Aid Kit',
+    'Backpack', 'Binoculars', 'Canteen', 'Flashlight', 'Gas Mask',
+    'Gloves', 'GPS', 'Sleeping Bag', 'Tent', 'Rope'
+]
+
+# Function to generate random data with constraints
+def generate_random_data():
+    edd = fake.date_time_this_year()
+    rdd = edd + timedelta(days=random.randint(1, 10))
+    eda = rdd + timedelta(days=random.randint(1, 10))
+    ETA_to_APOE = fake.date_time_this_year()
+    Delivery_Window = ETA_to_APOE + timedelta(days=random.randint(1, 10))
+
+    return {
+        'pda': fake.word(),
+        'rcn': fake.word(),
+        'status': fake.random_element(elements=('Pending', 'In Transit', 'Delivered')),
+        'comments': fake.sentence(),
+        'startLocation': fake.city(),
+        'endLocation': fake.city(),
+        'edd': edd,
+        'rdd': rdd,
+        'eda': eda,
+        'SAMM_Details': fake.sentence(),
+        'TCN': fake.lexify(text='?' * 17),
+        'NSN': fake.lexify(text='?' * 13),
+        'nomenclature': random.choice(military_equipment),
+        'QTY': fake.random_int(min=1, max=100),
+        'DODIC': fake.word(),
+        'ST': fake.random_number(digits=2, fix_len=True) + random.random(),
+        'Depot': fake.word(),
+        'APOE': fake.word(),
+        'Bol': fake.lexify(text='?' * 13),
+        'SDT_Cost': fake.random_number(digits=5) + random.random(),
+        'Carrier': fake.company(),
+        'ETA_to_APOE': ETA_to_APOE,
+        'Delivery_Window': Delivery_Window,
+        'Truck_status': fake.random_element(elements=('On Schedule', 'Delayed', 'Completed')),
+        'SAAM_Status': fake.random_element(elements=('Active', 'Inactive')),
+        'Mode': fake.random_element(elements=('air', 'ground', 'sea')),
+        'high_priority': random.random() < 0.1  # 10% chance of being True
+    }
+
+# Insert data into the table
+def insert_data(cursor, data):
+    insert_query = """
+    INSERT INTO deliverytable (
+        pda, rcn, status, comments, startLocation, endLocation, edd, rdd, eda, SAMM_Details, 
+        TCN, NSN, nomenclature, QTY, DODIC, ST, Depot, APOE, Bol, SDT_Cost, Carrier, 
+        ETA_to_APOE, Delivery_Window, Truck_status, SAAM_Status, Mode, high_priority
+    ) VALUES (
+        %(pda)s, %(rcn)s, %(status)s, %(comments)s, %(startLocation)s, %(endLocation)s, %(edd)s, %(rdd)s, %(eda)s, %(SAMM_Details)s, 
+        %(TCN)s, %(NSN)s, %(nomenclature)s, %(QTY)s, %(DODIC)s, %(ST)s, %(Depot)s, %(APOE)s, %(Bol)s, %(SDT_Cost)s, %(Carrier)s, 
+        %(ETA_to_APOE)s, %(Delivery_Window)s, %(Truck_status)s, %(SAAM_Status)s, %(Mode)s, %(high_priority)s
     )
+    """
+    cursor.execute(insert_query, data)
 
-def generate_pda(pda_number, starting_date):
-    number_items = random.randint(2,8)
-    sign_date = starting_date
-    items = []
-    for i in range(number_items):
+# Generate and insert multiple rows of data
+for _ in range(100):  # Adjust the number to insert more or fewer rows
+    data = generate_random_data()
+    insert_data(cursor, data)
 
-        nomenclature = random.choice(TYPE_AMMO)
-        service = random.choice(SERVICES)
-        quantity = random.randint(10,80)
-        transport_mode = random.choice(TRANSPORT_MODES)
-        from_location = random.choice(DOMESTIC_PLACES)
-        to_location = random.choice(FOREIGN_PLACES)
-        transferred = random.randint(int(quantity/2),quantity)
-        percent_transferred = str(int((transferred/quantity)*100)) + '%'
-        ship_date = starting_date + timedelta(days=random.randint(2,5))
-        delivery_date = ship_date + timedelta(days=random.randint(5,19))
+# Commit the transaction and close the connection
+conn.commit()
+cursor.close()
+conn.close()
 
-        items.append({'service':service, 'nomenclature':nomenclature, 'quantity':quantity, 'transferred':transferred, 'percent_transferred':percent_transferred, 
-                      'ship_date':ship_date.strftime('%Y-%m-%d %H:%M:%S'), 'delivery_date':delivery_date.strftime('%Y-%m-%d %H:%M:%S'), 'transport_mode':transport_mode, 'from_location':from_location, 
-                      'to_location':to_location})
-
-    data = {'pda_number':pda_number,'sign_date':sign_date.strftime('%Y-%m-%d %H:%M:%S'), 'delivery_date': delivery_date.strftime('%Y-%m-%d %H:%M:%S'), 'items': items}
-    return data
-
-def generate_pdas():
-    starting_date = generate_random_date(datetime(2021, 1, 1), datetime(2024, 1, 31)) 
-    number_pdas = int(input('Enter the number of PDAs to generate: '))
-    pdas_object = []
-    for i in range(0,number_pdas):
-        pdas_object.append(generate_pda(i, starting_date))
-        starting_date += timedelta(days=random.randint(20,30))
-    return pdas_object
-
-def dump_nomenclatures_data_csv():
-    pdas_data = generate_pdas()
-    with open('pdas_data.csv', 'w') as f:
-        f.write(','.join(HEADERS) + '\n')
-        for pda in pdas_data:
-            for item in pda['items']:
-                id = random.randint(1000,9999)
-                pda_number = pda['pda_number']
-                rcn = random.randint(100000,999999)
-                status = random.choice(['Delivered','TBD','OTW'])
-                comments = ''
-                startLocation = item['from_location']
-                endLocation = item['to_location']
-                edd = item['ship_date']
-                rdd = item['delivery_date']
-                eda = item['delivery_date']
-                SAMM_Details = ''
-                TCN = 'TCN' + str(random.randint(100000,999999))
-                NSN = 'NSN' + str(random.randint(100000,999999))
-                nomenclature = item['nomenclature']
-                QTY = item['quantity']
-                DODIC = 'DODIC' + str(random.randint(1000,9999))
-                ST = random.randint(0,100)
-                Depot = ''
-                APOE = item['to_location']
-                Bol = 'BOL' + str(random.randint(100000,999999))
-                SDT_Cost = random.randint(1000,9999)
-                Carrier = random.choice(['Fedex','UPS','USPS'])
-                ETA_to_APOE = random.choice(['2021-01-01','2021-01-02','2021-01-03'])
-                Delivery_Window = random.choice(['2021-01-01','2021-01-02','2021-01-03'])
-                Truck_status = random.choice(['Delivery to X base at XX (date)','TBD'])
-                SAAM_Status = random.choice(['delivered XX (date)','TBD'])
-
-                f.write(f'{id},{pda_number},{rcn},{status},{comments},{startLocation},{endLocation},{edd},{rdd},{eda},{SAMM_Details},{TCN},{NSN},{nomenclature},{QTY},{DODIC},{ST},{Depot},{APOE},{Bol},{SDT_Cost},{Carrier},{ETA_to_APOE},{Delivery_Window},{Truck_status},{SAAM_Status}\n')
-    print('Your data has been saved to pdas_data.csv')
-
-def dump_sql_script():
-    pdas_data = generate_pdas()
-    with open('pdas_sql.txt', 'w') as f:
-        f.write('INSERT INTO pdas.deliverytable (id, pda, rcn, status, comments, startLocation, endLocation, edd, rdd, eda, samm_details, tcn, nsn, nomenclature, qty, dodic, st, Depot, apoe, Bol, sdt_cost, carrier, eta_to_apoe, delivery_window, truck_status, saam_status) VALUES\n')
-        holder = []
-        for pda in pdas_data:
-            for item in pda['items']:
-                id = random.randint(1000,9999)
-                pda_number = pda['pda_number']
-                rcn = random.randint(100000,999999)
-                status = random.choice(['Delivered','TBD','OTW'])
-                comments = 'commebnt placeholder'
-                startLocation = item['from_location']
-                endLocation = item['to_location']
-                edd = item['ship_date']
-                rdd = item['delivery_date']
-                eda = item['delivery_date']
-                SAMM_Details = random.choice(['SAAM:1234G MissionID: Callsign:','TBD'])
-                TCN = 'TCN' + str(random.randint(100000,999999))
-                NSN = 'NSN' + str(random.randint(100000,999999))
-                nomenclature = item['nomenclature']
-                QTY = item['quantity']
-                DODIC = 'DODIC' + str(random.randint(1000,9999))
-                ST = random.randint(0,100)
-                Depot = random.choice(['Depot1','Depot2','Depot3','Depot4','Depot5'])
-                APOE = item['to_location']
-                Bol = 'BOL' + str(random.randint(100000,999999))
-                SDT_Cost = random.randint(1000,9999)
-                Carrier = random.choice(['Fedex','UPS','USPS'])
-                ETA_to_APOE = random.choice(['2021-01-01','2021-01-02','2021-01-03'])
-                Delivery_Window = random.choice(['2021-01-01','2021-01-02','2021-01-03'])
-                Truck_status = random.choice(['Delivery to X base at XX (date)','TBD'])
-                SAAM_Status = random.choice(['delivered XX (date)','TBD'])
-
-                holder.append(f"({id},'{pda_number}','{rcn}','{status}','{comments}','{startLocation}','{endLocation}','{edd}','{rdd}','{eda}','{SAMM_Details}','{TCN}','{NSN}','{nomenclature}',{QTY},'{DODIC}','{ST}','{Depot}','{APOE}','{Bol}','{SDT_Cost}','{Carrier}','{ETA_to_APOE}','{Delivery_Window}','{Truck_status}','{SAAM_Status}')")
-        f.write(',\n'.join(holder) + ';\n')
-    print('Your data has been saved to pdas_sql.txt')
-
-dump_sql_script()
-
-'''
-0 ID - int
-1 pda - string
-2 rcn - string
-3 status - string
-4 comments - string
-5 startLocation - string 
-6 endLocation -string
-7 edd - timestamp / estimaed dep date 
-8 rdd - timestamp / required del date
-9 eda - timestamp / estimaed del date
-10 SAMM Details - SAAM:1234G MissionID: Callsign:
-11 TCN - 17char
-12 NSN - 13 char
-13 nomenclature - string
-14 QTY - int
-15 DODIC - A525
-16 ST - Float
-17 Depot - string
-18 APOE - string
-19 Bol - 13 char string
-20 SDT Cost - Double
-21 Carrier - string
-22 ETA to APOE - timestamp
-23 Delivery Window - timestamp
-24 Truck status - Delivery to X base at XX (date)
-25 SAAM Status - delivered XX (date) 
-'''
+print("Data inserted successfully")
