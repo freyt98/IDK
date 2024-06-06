@@ -24,5 +24,7 @@ CREATE TABLE IF NOT EXISTS DeliveryTable (
     ETA_to_APOE TIMESTAMP,
     Delivery_Window TIMESTAMP,
     Truck_status VARCHAR(255),
-    SAAM_Status VARCHAR(255)
+    SAAM_Status VARCHAR(255),
+    Mode VARCHAR(255) CHECK (Mode IN ('air', 'ground', 'sea'))
 );
+
