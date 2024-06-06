@@ -59,20 +59,21 @@ def generate_random_data():
         'Delivery_Window': Delivery_Window,
         'Truck_status': fake.random_element(elements=('On Schedule', 'Delayed', 'Completed')),
         'SAAM_Status': fake.random_element(elements=('Active', 'Inactive')),
-        'Mode': fake.random_element(elements=('air', 'ground', 'sea'))
+        'Mode': fake.random_element(elements=('air', 'ground', 'sea')),
+        'high_priority': random.random() < 0.1  # 10% chance of being True
     }
 
 # Insert data into the table
 def insert_data(cursor, data):
     insert_query = """
-    INSERT INTO DeliveryTable (
+    INSERT INTO YourTableName (
         pda, rcn, status, comments, startLocation, endLocation, edd, rdd, eda, SAMM_Details, 
         TCN, NSN, nomenclature, QTY, DODIC, ST, Depot, APOE, Bol, SDT_Cost, Carrier, 
-        ETA_to_APOE, Delivery_Window, Truck_status, SAAM_Status, Mode
+        ETA_to_APOE, Delivery_Window, Truck_status, SAAM_Status, Mode, high_priority
     ) VALUES (
         %(pda)s, %(rcn)s, %(status)s, %(comments)s, %(startLocation)s, %(endLocation)s, %(edd)s, %(rdd)s, %(eda)s, %(SAMM_Details)s, 
         %(TCN)s, %(NSN)s, %(nomenclature)s, %(QTY)s, %(DODIC)s, %(ST)s, %(Depot)s, %(APOE)s, %(Bol)s, %(SDT_Cost)s, %(Carrier)s, 
-        %(ETA_to_APOE)s, %(Delivery_Window)s, %(Truck_status)s, %(SAAM_Status)s, %(Mode)s
+        %(ETA_to_APOE)s, %(Delivery_Window)s, %(Truck_status)s, %(SAAM_Status)s, %(Mode)s, %(high_priority)s
     )
     """
     cursor.execute(insert_query, data)
