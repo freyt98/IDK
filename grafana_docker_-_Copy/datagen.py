@@ -5,11 +5,11 @@ from datetime import datetime, timedelta
 
 # Configuration
 database_config = {
-    'dbname': 'your_dbname',  # Replace with your database name
-    'user': 'your_username',  # Replace with your database username
-    'password': 'your_password',  # Replace with your database password
-    'host': 'your_host',  # Replace with your database host
-    'port': 'your_port'  # Replace with your database port
+    'dbname': 'postgres',  # Replace with your database name
+    'user': 'shoc',  # Replace with your database username
+    'password': 'JustKeepSwimming',  # Replace with your database password
+    'host': 'localhost',  # Replace with your database host
+    'port': '5432'  # Replace with your database port
 }
 
 # Establish a database connection
@@ -24,6 +24,14 @@ cursor = conn.cursor()
 
 # Initialize Faker
 fake = Faker()
+
+# Predefined list of military equipment or gear
+military_equipment = [
+    'Rifle', 'Helmet', 'Body Armor', 'Night Vision Goggles', 'Combat Boots',
+    'Tactical Vest', 'Handgun', 'Grenade', 'Radio', 'First Aid Kit',
+    'Backpack', 'Binoculars', 'Canteen', 'Flashlight', 'Gas Mask',
+    'Gloves', 'GPS', 'Sleeping Bag', 'Tent', 'Rope'
+]
 
 # Function to generate random data with constraints
 def generate_random_data():
@@ -46,7 +54,7 @@ def generate_random_data():
         'SAMM_Details': fake.sentence(),
         'TCN': fake.lexify(text='?' * 17),
         'NSN': fake.lexify(text='?' * 13),
-        'nomenclature': fake.word(),
+        'nomenclature': random.choice(military_equipment),
         'QTY': fake.random_int(min=1, max=100),
         'DODIC': fake.word(),
         'ST': fake.random_number(digits=2, fix_len=True) + random.random(),
@@ -66,7 +74,7 @@ def generate_random_data():
 # Insert data into the table
 def insert_data(cursor, data):
     insert_query = """
-    INSERT INTO YourTableName (
+    INSERT INTO deliverytable (
         pda, rcn, status, comments, startLocation, endLocation, edd, rdd, eda, SAMM_Details, 
         TCN, NSN, nomenclature, QTY, DODIC, ST, Depot, APOE, Bol, SDT_Cost, Carrier, 
         ETA_to_APOE, Delivery_Window, Truck_status, SAAM_Status, Mode, high_priority
